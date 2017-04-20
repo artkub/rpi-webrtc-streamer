@@ -1,7 +1,7 @@
 #
 # WebRTC source tree and object directory 
 # 
-WEBRTC_ROOT=$(HOME)/Workspace/webrtc
+WEBRTC_ROOT=$(HOME)/projects/webrtc
 WEBRTC_OUTPUT=x64_build
 WEBRTC_LIBPATH=$(WEBRTC_ROOT)/src/$(WEBRTC_COUTPUT)
 

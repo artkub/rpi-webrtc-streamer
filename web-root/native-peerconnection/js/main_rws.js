@@ -13,7 +13,7 @@ window.onbeforeunload = doDisconnect;
 var messageCounter = 0;
 var peerConnection;    
 
-var localTestingUrl = "ws://10.0.0.11:8888/rws/ws";
+var localTestingUrl = "ws://192.168.8.41:8888/rws/ws";
 var pcConfig = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
 var pcOptions = { optional: [ {DtlsSrtpKeyAgreement: true} ] };
 var mediaConstraints = {'mandatory': { 'OfferToReceiveAudio': true, 'OfferToReceiveVideo': true }};
@@ -309,7 +309,7 @@ window.setInterval(function() {
 var websocket;
 function ConnectWebSocket() {
     var websocket_url;
-    if( location.hostname == "127.0.0.1" ) 
+    if( location.hostname.indexOf("127.0.0.1") >= 0 )
         websocket_url = localTestingUrl;
     else
         websocket_url = "wss://" + location.hostname + "/rws/ws";

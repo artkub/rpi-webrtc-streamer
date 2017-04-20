@@ -344,7 +344,7 @@ void Streamer::OnMessageSent(int err) {
     LOG(INFO) << __FUNCTION__ << "Message Sent result : " << err;
 }
 
-std::unique_ptr<cricket::VideoCapturer> Streamer::OpenVideoCaptureDevice() {
+cricket::VideoCapturer * Streamer::OpenVideoCaptureDevice() {
     webrtc::Trace::CreateTrace();
 
     std::vector<std::string> device_names;
@@ -366,7 +366,7 @@ std::unique_ptr<cricket::VideoCapturer> Streamer::OpenVideoCaptureDevice() {
     }
 
     cricket::WebRtcVideoDeviceCapturerFactory factory;
-    std::unique_ptr<cricket::VideoCapturer> capturer;
+    cricket::VideoCapturer *capturer;
     for (const auto& name : device_names) {
         capturer = factory.Create(cricket::Device(name, 0));
         if (capturer) {

@@ -2,7 +2,7 @@
 # h264bitstream compiler and linker definiton 
 # 
 #
-H264BITSTREAM_ROOT=$(HOME)/Workspace/rpi-webrtc-streamer/lib/h264bitstream
+H264BITSTREAM_ROOT=$(HOME)/projects/rpi-webrtc-streamer/lib/h264bitstream
 
 
 # CC FLAGS

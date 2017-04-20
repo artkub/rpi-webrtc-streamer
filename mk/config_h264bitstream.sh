@@ -8,7 +8,7 @@ export RANLIB=arm-linux-gnueabihf-ranlib
 
 ##
 ## Check whether rpi_rootfs repo exist
-if [ ! -e ${HOME}/Workspace/rpi_rootfs/PI.cmake ]
+if [ ! -e /opt/rpi_rootfs/PI.cmake ]
 then
 	echo "rpi_rootfs does not exists"
 	echo "You need to configure rpi_rootfs repo to build"
@@ -28,7 +28,7 @@ then
     if [ ! -f ../lib/h264bitstream/.libs/libh264bitstream.a ]
     then
 	    echo "start building h264bitstream library"
-        cd ../lib/h264bitstream && ./configure --host=x86_64-unknown-linux-gnu --build=arm-linux-gnueabi --target=arm-linux-gnueabi --with-sysroot=${HOME}/Workspace/rpi_rootfs && make 
+        cd ../lib/h264bitstream && ./configure --host=x86_64-unknown-linux-gnu --build=arm-linux-gnueabi --target=arm-linux-gnueabi --with-sysroot=/opt/rpi_rootfs && make 
     else
 	    echo "h264bitstream.a already exist"
     fi

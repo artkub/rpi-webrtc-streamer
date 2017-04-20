@@ -2,7 +2,7 @@
 # libwebsocket compiler and linker definiton 
 # 
 #
-LIBWEBSOCKETS_ROOT=$(HOME)/Workspace/rpi-webrtc-streamer/lib/libwebsockets
+LIBWEBSOCKETS_ROOT=$(HOME)/projects/rpi-webrtc-streamer/lib/libwebsockets
 
 
 # CC FLAGS

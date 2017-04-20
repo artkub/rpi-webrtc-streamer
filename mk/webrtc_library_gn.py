@@ -107,6 +107,7 @@ def Fiter_Includes(include_lists):
     base filtering and rule matching patterns
     """
     include_dotdot_str = "-I.."
+    include_ddsdd_str = "-I../.."
     gen_str = "-Igen"
     testing_str = "testing"
     gtest_str = "gtest"
@@ -129,6 +130,11 @@ def Fiter_Includes(include_lists):
             gen_dir = inc[len("-I"):]   # include 'gen' string in dirname
             gen_relpath = "".join(os.path.relpath(webrtc_build_path+'/'+gen_dir))
             filtered_include_lists.append("-I" + gen_relpath)
+            continue
+        if inc.find(include_ddsdd_str) != -1:
+            include_dir = inc[len(include_ddsdd_str):]
+            include_relpath = "".join(os.path.relpath(webrtc_root_path+include_dir))
+            filtered_include_lists.append("-I" + include_relpath)
             continue
         if inc.find(include_dotdot_str) != -1:
             include_dir = inc[len(include_dotdot_str):]
