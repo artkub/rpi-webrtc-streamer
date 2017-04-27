@@ -152,9 +152,16 @@ bool Streamer::CreatePeerConnection() {
     RTC_DCHECK(peer_connection_.get() == nullptr);
 
     webrtc::PeerConnectionInterface::RTCConfiguration config;
-    webrtc::PeerConnectionInterface::IceServer server;
-    streamer_config_->GetStunServer(server.uri);
-    config.servers.push_back(server);
+
+    webrtc::PeerConnectionInterface::IceServer stun;
+    streamer_config_->GetStunServer(stun.uri);
+    config.servers.push_back(stun);
+
+    webrtc::PeerConnectionInterface::IceServer turn;
+    turn.uri = "turn:beta.volons.fr:3478";
+    turn.username = "art";
+    turn.password = "123";
+    config.servers.push_back(turn);
 
     webrtc::FakeConstraints constraints;
     if (dtls_enable) {
@@ -391,10 +398,12 @@ void Streamer::AddStreams() {
             kAudioLabel, peer_connection_factory_->CreateAudioSource(&audioConstraints)));
 
     webrtc::ClientConstraints videoConstraints;
+    videoConstraints.SetMandatoryMaxWidth(1920);
+    videoConstraints.SetMandatoryMaxHeight(1080);
     //videoConstraints.SetMandatoryMaxWidth(1280);
     //videoConstraints.SetMandatoryMaxHeight(1024);
-    videoConstraints.SetMandatoryMaxWidth(640);
-    videoConstraints.SetMandatoryMaxHeight(480);
+    //videoConstraints.SetMandatoryMaxWidth(640);
+    //videoConstraints.SetMandatoryMaxHeight(480);
     videoConstraints.SetMandatoryMinWidth(320);
     videoConstraints.SetMandatoryMinHeight(240);
     videoConstraints.SetMandatoryMaxFrameRate(30);

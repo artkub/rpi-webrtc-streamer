@@ -151,10 +151,19 @@ int32_t RaspiEncoderImpl::InitEncode(const VideoCodec* codec_settings,
     // Overriding initial resolution parameter from codec_settings;
     // init_width = width_ = 1024;  // for testing
     // init_height = height_ = 768;
-    init_width = width_ = 640;  
-    init_height = height_ = 480;
-    max_bps_ = 1700; // kbps
-    target_bps_ = 800; // kbps
+
+    //init_width = width_ = 1920;
+    //init_height = height_ = 1080;
+    init_width = width_ = 1280;
+    init_height = height_ = 720;
+    //init_width = width_ = 640;
+    //init_height = height_ = 480;
+
+    max_bps_ = 5000; // kbps
+    target_bps_ = 1000; // kbps
+    //max_bps_ = 1700; // kbps
+    //target_bps_ = 800; // kbps
+
     max_frame_rate_ = kMaxRaspiFPS;
 
     LOG(INFO) << "InitEncode request: " << init_width << " x " << init_height;
@@ -209,7 +218,7 @@ int32_t RaspiEncoderImpl::RegisterEncodeCompleteCallback(
 }
 
 
-int32_t RaspiEncoderImpl::SetRateAllocation( 
+int32_t RaspiEncoderImpl::SetRateAllocation(
         const BitrateAllocation& bitrate_allocation, uint32_t framerate) {
     
     if (bitrate_allocation.get_sum_bps() <= 0 || framerate <= 0)
@@ -249,6 +258,8 @@ int32_t RaspiEncoderImpl::Encode(
         return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
     }
 
+    LOG(INFO) << "width: " << frame.width()  << ", height: " << frame.height();
+
     bool force_key_frame = false;
     if (frame_types != nullptr) {
         // We only support a single stream.
@@ -261,7 +272,7 @@ int32_t RaspiEncoderImpl::Encode(
     }
 
     if (force_key_frame) {
-        uint32_t kKeyFrameAllowedInterval = 3000;   
+        uint32_t kKeyFrameAllowedInterval = 3000;
         // function forces a key frame regardless of the |bIDR| argument's value.
         // (If every frame is a key frame we get lag/delays.)
         if( clock_->TimeInMilliseconds() - last_keyframe_request_ > kKeyFrameAllowedInterval ){
