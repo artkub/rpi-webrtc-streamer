@@ -111,10 +111,10 @@ int32_t RaspiEncoderImpl::InitEncode(const VideoCodec* codec_settings,
         ReportError();
         return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
     }
-    if (codec_settings->maxFramerate == 0) {
-        ReportError();
-        return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
-    }
+    //if (codec_settings->maxFramerate == 0) {
+    //    ReportError();
+    //    return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
+    //}
     if (codec_settings->width < 1 || codec_settings->height < 1) {
         ReportError();
         return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
@@ -122,10 +122,7 @@ int32_t RaspiEncoderImpl::InitEncode(const VideoCodec* codec_settings,
 
     // Set internal settings from codec_settings
     // TODO(kclyu) changed the encoder defaultparameter from these
-    int	init_width, init_height;
 
-    init_width = width_ = codec_settings->width;
-    init_height = height_ = codec_settings->height;
     max_frame_rate_ = static_cast<float>(codec_settings->maxFramerate);
     if( max_frame_rate_ > kMaxRaspiFPS ) max_frame_rate_ = kMaxRaspiFPS;
     mode_ = codec_settings->mode;
@@ -133,12 +130,11 @@ int32_t RaspiEncoderImpl::InitEncode(const VideoCodec* codec_settings,
     key_frame_interval_ = codec_settings->H264().keyFrameInterval;
     max_payload_size_ = max_payload_size;
 
-    // Codec_settings uses kbits/second; encoder uses bits/second.
-    max_bps_ = codec_settings->maxBitrate ;             // kbps
+    max_bps_ = codec_settings->maxBitrate;             // kbps
     if (codec_settings->targetBitrate == 0)
         target_bps_ = codec_settings->startBitrate;     // kbps
     else
-        target_bps_ = codec_settings->targetBitrate;    // kbps 
+        target_bps_ = codec_settings->targetBitrate;    // kbps
 
     // Get the instance of MMAL encoder wrapper
     if( (mmal_encoder_ = getMMALEncoderWrapper() ) == nullptr ) {
@@ -148,63 +144,50 @@ int32_t RaspiEncoderImpl::InitEncode(const VideoCodec* codec_settings,
         return WEBRTC_VIDEO_CODEC_ERROR;
     }
 
-    // Overriding initial resolution parameter from codec_settings;
-    // init_width = width_ = 1024;  // for testing
-    // init_height = height_ = 768;
+    //max_bps_ = 5000; // kbps
+    //target_bps_ = 1000; // kbps
 
-    //init_width = width_ = 1920;
-    //init_height = height_ = 1080;
-    init_width = width_ = 1280;
-    init_height = height_ = 720;
-    //init_width = width_ = 640;
-    //init_height = height_ = 480;
-
-    max_bps_ = 5000; // kbps
-    target_bps_ = 1000; // kbps
     //max_bps_ = 1700; // kbps
     //target_bps_ = 800; // kbps
 
-    max_frame_rate_ = kMaxRaspiFPS;
+    bool success = mmal_encoder_->InitEncoder(
+            codec_settings->width,
+            codec_settings->height,
+            max_frame_rate_,
+            target_bps_,
+            std::bind(&RaspiEncoderImpl::OnFrame, this, std::placeholders::_1));
 
-    LOG(INFO) << "InitEncode request: " << init_width << " x " << init_height;
-    if(mmal_encoder_->InitEncoder(init_width, init_height,
-                                max_frame_rate_, target_bps_ ) == false ) {
+    if( success == false ) {
         LOG(LS_ERROR) << "Failed to initialize MMAL encoder";
         Release();
         ReportError();
         return WEBRTC_VIDEO_CODEC_ERROR;
     }
 
-    // start capture in here
-    mmal_encoder_->StartCapture();
-
     // start drain thread ;
-    if ( !drainThread_) {
-        LOG(INFO) << "MMAL encoder drain thread initialized.";
-        drainThread_.reset(new rtc::PlatformThread(
-                               RaspiEncoderImpl::DrainThread, this, "DrainThread"));
-        drainThread_->Start();
-        drainThread_->SetPriority(rtc::kHighPriority);
-        drainStarted_ = true;
-    }
+    //if ( !drainThread_) {
+    //    LOG(INFO) << "MMAL encoder drain thread initialized.";
+    //    drainThread_.reset(new rtc::PlatformThread(
+    //                           RaspiEncoderImpl::DrainThread, this, "DrainThread"));
+    //    drainThread_->Start();
+    //    drainThread_->SetPriority(rtc::kHighPriority);
+    //    drainStarted_ = true;
+    //}
 
     return WEBRTC_VIDEO_CODEC_OK;
 }
 
 
 int32_t RaspiEncoderImpl::Release() {
-    LOG(INFO) << "RaspiEncoder Release request: ";
 
-    if (drainThread_) {
-        drainStarted_ = false;
-        // Make sure the drain thread stop using the critsect.
-        drainThread_->Stop();
-        drainThread_.reset();
-    }
+    //if (drainThread_) {
+    //    drainStarted_ = false;
+    //    // Make sure the drain thread stop using the critsect.
+    //    drainThread_->Stop();
+    //    drainThread_.reset();
+    //}
 
     if (mmal_encoder_) {
-        // unInitializeMMAL return value does have no meaning
-        mmal_encoder_->StopCapture();
         mmal_encoder_->UninitEncoder();
         mmal_encoder_ = nullptr;
     }
@@ -220,7 +203,7 @@ int32_t RaspiEncoderImpl::RegisterEncodeCompleteCallback(
 
 int32_t RaspiEncoderImpl::SetRateAllocation(
         const BitrateAllocation& bitrate_allocation, uint32_t framerate) {
-    
+
     if (bitrate_allocation.get_sum_bps() <= 0 || framerate <= 0)
         return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
 
@@ -234,7 +217,7 @@ int32_t RaspiEncoderImpl::SetRateAllocation(
 
     if( target_bps_!= bitrate_allocation.get_sum_bps() ) {
         target_bps_ = bitrate_allocation.get_sum_bps();
-        if(target_bps_ > max_bps_ ) 
+        if(target_bps_ > max_bps_ )
             target_bps_ = max_bps_;
         else
             LOG(INFO) << "Changing bitrate : " << target_bps_ ;
@@ -258,7 +241,7 @@ int32_t RaspiEncoderImpl::Encode(
         return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
     }
 
-    LOG(INFO) << "width: " << frame.width()  << ", height: " << frame.height();
+    //LOG(INFO) << "width: " << frame.width()  << ", height: " << frame.height();
 
     bool force_key_frame = false;
     if (frame_types != nullptr) {
@@ -280,38 +263,47 @@ int32_t RaspiEncoderImpl::Encode(
             last_keyframe_request_ = clock_->TimeInMilliseconds();
         }
     }
+
+    mmal_encoder_->Encode(frame);
+
     // No more thing to do
     return WEBRTC_VIDEO_CODEC_OK;
 }
 
 
-bool RaspiEncoderImpl::DrainThread(void* obj)
+//bool RaspiEncoderImpl::DrainThread(void* obj)
+//{
+//    return static_cast<RaspiEncoderImpl *> (obj)->DrainProcess();
+//}
+
+//bool RaspiEncoderImpl::DrainProcess()
+//{
+//    //int32_t callback_status = 0;
+//    MMAL_BUFFER_HEADER_T *buf = nullptr;
+//
+//    // frame queue is empty?
+//    if ( mmal_encoder_->Length() == 0 ) {
+//        usleep(500);
+//        return true;
+//    }
+//
+//    buf = mmal_encoder_->DequeueFrame();
+//    return OnFrame(buf);
+//}
+
+bool RaspiEncoderImpl::OnFrame( MMAL_BUFFER_HEADER_T *buf )
 {
-    return static_cast<RaspiEncoderImpl *> (obj)->DrainProcess();
-}
-
-bool RaspiEncoderImpl::DrainProcess()
-{
-    int32_t callback_status = 0;
-    MMAL_BUFFER_HEADER_T *buf = nullptr;
-
-    // frame queue is empty?
-    while( mmal_encoder_->Length() == 0 ) {
-        usleep(500);
-    }
-
-    buf = mmal_encoder_->DequeueFrame();
     if (encoded_image_callback_ && buf && buf->length > 0 ) {
         CodecSpecificInfo codec_specific;
         uint32_t fragment_index;
         std::vector<NalUnit> nal_unit_list;
-        int qp;
 
         // Split encoded image up into fragments. This also updates |encoded_image_|.
         RTPFragmentationHeader frag_header;
         memset( &frag_header, 0x00, sizeof(frag_header));
 
         h264_stream_parser_.ParseBitstream(buf->data, buf->length, &nal_unit_list);
+        h264_stream_parser_.GetLastSliceQp(&encoded_image_.qp_);
 
         if ( nal_unit_list.size() == 0 ) {
             // could not find the nal unit in the buffer, so do nothing.
@@ -394,7 +386,7 @@ bool RaspiEncoderImpl::DrainProcess()
     }
 
     if( buf ) mmal_encoder_->ReturnToPool(buf);
-    if( mmal_encoder_->Length() == 0 ) usleep(1000);
+    //if( mmal_encoder_->Length() == 0 ) usleep(1000);
 
     // TODO: if encoded_size is zero, we need to reset encoder itself
     return true;
@@ -438,7 +430,7 @@ int32_t RaspiEncoderImpl::SetPeriodicKeyFrames(bool enable) {
 }
 
 VideoEncoder::ScalingSettings RaspiEncoderImpl::GetScalingSettings() const {
-  return VideoEncoder::ScalingSettings(true);
+    return VideoEncoder::ScalingSettings(true);
 }
 
 MMALVideoEncoderFactory::MMALVideoEncoderFactory() {
@@ -485,7 +477,7 @@ bool MMALVideoEncoderFactory::EncoderTypeHasInternalSource(VideoCodecType type) 
 }
 
 const std::vector<cricket::VideoCodec>& MMALVideoEncoderFactory::supported_codecs() const {
-  return supported_codecs_;
+    return supported_codecs_;
 }
 
 void MMALVideoEncoderFactory::DestroyVideoEncoder(webrtc::VideoEncoder* encoder) {

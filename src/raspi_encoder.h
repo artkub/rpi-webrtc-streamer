@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "webrtc/media/engine/webrtcvideoencoderfactory.h"
 #include "webrtc/base/messagequeue.h"
 
+//#include "webrtc/common_video/h264/h264_bitstream_parser.h"
 #include "h264bitstream_parser.h"
 
 
@@ -91,6 +92,8 @@ public:
     int32_t SetChannelParameters(uint32_t packet_loss, int64_t rtt) override;
     int32_t SetPeriodicKeyFrames(bool enable) override;
 
+    bool SupportsNativeHandle() const override { return true; };
+
 private:
     const float kMaxRaspiFPS = 30.0f;
     bool IsInitialized() const;
@@ -99,11 +102,12 @@ private:
 
     //
     // Encoded frame process thread
-    rtc::CriticalSection* drainCritSect_;
-    std::unique_ptr<rtc::PlatformThread> drainThread_;
-    static bool DrainThread(void*);
-    bool drainStarted_;
-    bool DrainProcess();
+    //rtc::CriticalSection* drainCritSect_;
+    //std::unique_ptr<rtc::PlatformThread> drainThread_;
+    //static bool DrainThread(void*);
+    //bool drainStarted_;
+    //bool DrainProcess();
+    bool OnFrame( MMAL_BUFFER_HEADER_T *buf );
 
     // Reports statistics with histograms.
     void ReportInit();

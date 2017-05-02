@@ -37,12 +37,11 @@ TARGET = ../webrtc-streamer
 #
 #SOURCES.CC = stream_data_sockets.cc stream_sockets.cc direct_socket.cc streamer_observer.cc streamer.cc streamer_defaults.cc main.cc raspi_encoder.cc mmal_wrapper.cc h264bitstream_parser.cc utils.cc
 #SOURCES.C = mmal_encoder.c mmal_encoder_reset.c mmal_util.c raspicli.c raspicamcontrol.c raspipreview.c 
-SOURCES.CC = websocket_server.cc websocket_server_callback.cc app_channel.cc \
-	app_client.cc direct_socket.cc streamer_observer.cc streamer.cc \
-	streamer_config.cc main.cc raspi_encoder.cc mmal_wrapper.cc \
-	h264bitstream_parser.cc utils.cc
-SOURCES.C = websocket_server_util.c mmal_encoder.c mmal_encoder_reset.c mmal_util.c raspicli.c \
-	raspicamcontrol.c raspipreview.c 
+
+SOURCES.CC = websocket_server.cc websocket_server_callback.cc app_channel.cc app_client.cc direct_socket.cc streamer_observer.cc streamer.cc streamer_config.cc main.cc raspi_encoder.cc mmal_wrapper.cc h264bitstream_parser.cc utils.cc rpi_video_capturer.cc wrapped_mmal_buffer.cc
+SOURCES.C = websocket_server_util.c mmal_encoder.c mmal_encoder_reset.c mmal_util.c raspicli.c raspicamcontrol.c raspipreview.c
+#SOURCES.CC = websocket_server.cc websocket_server_callback.cc app_channel.cc app_client.cc direct_socket.cc streamer_observer.cc streamer.cc streamer_config.cc main.cc h264bitstream_parser.cc utils.cc rpi_video_capturer.cc
+#SOURCES.C = websocket_server_util.c raspicam/RaspiCamControl.c raspicam/RaspiCLI.c raspicam/RaspiPreview.c raspicam/RaspiVidYUV.c
 
 
 OBJECTS.CC = $(SOURCES.CC:.cc=.o) 
@@ -56,10 +55,10 @@ all: $(TARGET)
 # Makefile rules...
 #
 .c.o : $(OBJECTS.C) 
-	$(CC) -I. $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) -g -O0 -I. $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 .cc.o : $(OBJECTS.CC) 
-	$(CXX)  -I. $(CFLAGS) $(CCFLAGS) $(INCLUDES)  -c $< -o $@
+	$(CXX) -g -O0 -I. $(CFLAGS) $(CCFLAGS) $(INCLUDES)  -c $< -o $@
 
 
 $(TARGET): $(OBJECTS) 

@@ -39,8 +39,10 @@ extern "C" {
 #define MMAL_RETURN_OK		0
 #define MMAL_RETURN_FAIL	1
 
-#define RASPI_CAM_FIXED_WIDTH	1296
-#define RASPI_CAM_FIXED_HEIGHT  972
+//#define RASPI_CAM_FIXED_WIDTH	1296
+//#define RASPI_CAM_FIXED_HEIGHT  972
+#define RASPI_CAM_FIXED_WIDTH	1920
+#define RASPI_CAM_FIXED_HEIGHT  1080
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -137,10 +139,14 @@ struct RASPIVID_STATE_S
 
     MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
     MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
+    MMAL_COMPONENT_T *resizer_component;   /// Pointer to the resizer component
+    MMAL_CONNECTION_T *resizer_connection; /// Pointer to the connection from camera to preview
     MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera to preview
     MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
 
     MMAL_POOL_T *encoder_pool; /// Pointer to the pool of buffers used by encoder output port
+    MMAL_POOL_T *resizer_pool; /// Pointer to the pool of buffers used by resizer output port
+    MMAL_POOL_T *camera_pool; /// Pointer to the pool of buffers used by camera video port
 
     PORT_USERDATA callback_data;        /// Used to move data to the encoder callback
 
@@ -170,6 +176,8 @@ void update_annotation_data(RASPIVID_STATE *state);
 void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
 MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state);
 void destroy_camera_component(RASPIVID_STATE *state);
+MMAL_STATUS_T create_resizer_component(RASPIVID_STATE *state);
+void destroy_resizer_component(RASPIVID_STATE *state);
 MMAL_STATUS_T create_encoder_component(RASPIVID_STATE *state);
 void destroy_encoder_component(RASPIVID_STATE *state);
 MMAL_STATUS_T connect_ports(MMAL_PORT_T *output_port, MMAL_PORT_T *input_port, MMAL_CONNECTION_T **connection);

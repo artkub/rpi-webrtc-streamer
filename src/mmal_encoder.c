@@ -103,8 +103,6 @@ static XREF_T  intra_refresh_map[] =
 
 static int intra_refresh_map_size = sizeof(intra_refresh_map) / sizeof(intra_refresh_map[0]);
 
-
-
 /**
  * Assign a default set of parameters to the state passed in
  *
@@ -174,7 +172,7 @@ void default_status(RASPIVID_STATE *state)
     state->bCapturing = 0;
 
     state->cameraNum = 0;
-    state->sensor_mode = 0;
+    state->sensor_mode = 1;
 
     state->frame = 0;
 
@@ -308,7 +306,14 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
     MMAL_ES_FORMAT_T *format;
     MMAL_PORT_T *preview_port = NULL, *video_port = NULL, *still_port = NULL;
     MMAL_STATUS_T status;
+    MMAL_POOL_T *pool;
 
+    //int width = 1920;
+    //int height = 1080;
+    //int width = 640;
+    //int height = 480;
+    int width = state->width;
+    int height = state->height;
 
     /* Create the component */
     status = mmal_component_create(MMAL_COMPONENT_DEFAULT_CAMERA, &camera);
@@ -317,17 +322,17 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
         goto error;
     }
 
-    status = raspicamcontrol_set_stereo_mode(camera->output[0], 
-            &state->camera_parameters.stereo_mode);
-    status += raspicamcontrol_set_stereo_mode(camera->output[1], 
-            &state->camera_parameters.stereo_mode);
-    status += raspicamcontrol_set_stereo_mode(camera->output[2], 
-            &state->camera_parameters.stereo_mode);
+    //status = raspicamcontrol_set_stereo_mode(camera->output[0], 
+    //        &state->camera_parameters.stereo_mode);
+    //status += raspicamcontrol_set_stereo_mode(camera->output[1], 
+    //        &state->camera_parameters.stereo_mode);
+    //status += raspicamcontrol_set_stereo_mode(camera->output[2], 
+    //        &state->camera_parameters.stereo_mode);
 
-    if (status != MMAL_SUCCESS) {
-        vcos_log_error("Could not set stereo mode : error %d", status);
-        goto error;
-    }
+    //if (status != MMAL_SUCCESS) {
+    //    vcos_log_error("Could not set stereo mode : error %d", status);
+    //    goto error;
+    //}
 
     MMAL_PARAMETER_INT32_T camera_num =
     {{MMAL_PARAMETER_CAMERA_NUM, sizeof(camera_num)}, state->cameraNum};
@@ -385,12 +390,12 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
         MMAL_PARAMETER_CAMERA_CONFIG_T cam_config =
         {
             { MMAL_PARAMETER_CAMERA_CONFIG, sizeof(cam_config) },
-            .max_stills_w = state->width,
-            .max_stills_h = state->height,
+            .max_stills_w = width,
+            .max_stills_h = height,
             .stills_yuv422 = 0,
             .one_shot_stills = 0,
-            .max_preview_video_w = state->width,
-            .max_preview_video_h = state->height,
+            .max_preview_video_w = width,
+            .max_preview_video_h = height,
             .num_preview_video_frames = 3,
             .stills_capture_circular_buffer_height = 0,
             .fast_preview_resume = 0,
@@ -405,9 +410,6 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
     // HW limitations mean we need the preview to be the same size as the required recorded output
 
     format = preview_port->format;
-
-    format->encoding = MMAL_ENCODING_OPAQUE;
-    format->encoding_variant = MMAL_ENCODING_I420;
 
     if(state->camera_parameters.shutter_speed > 6000000)
     {
@@ -436,12 +438,13 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
     }
 
     format->encoding = MMAL_ENCODING_OPAQUE;
-    format->es->video.width = VCOS_ALIGN_UP(state->width, 32);
-    format->es->video.height = VCOS_ALIGN_UP(state->height, 16);
+    format->encoding_variant = MMAL_ENCODING_I420;
+    format->es->video.width = VCOS_ALIGN_UP(width, 32);
+    format->es->video.height = VCOS_ALIGN_UP(height, 16);
     format->es->video.crop.x = 0;
     format->es->video.crop.y = 0;
-    format->es->video.crop.width = state->width;
-    format->es->video.crop.height = state->height;
+    format->es->video.crop.width = width;
+    format->es->video.crop.height = height;
     format->es->video.frame_rate.num = PREVIEW_FRAME_RATE_NUM;
     format->es->video.frame_rate.den = PREVIEW_FRAME_RATE_DEN;
 
@@ -456,7 +459,6 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
     // Set the encode format on the video  port
 
     format = video_port->format;
-    format->encoding_variant = MMAL_ENCODING_I420;
 
     if(state->camera_parameters.shutter_speed > 6000000)
     {
@@ -473,13 +475,15 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
         mmal_port_parameter_set(video_port, &fps_range.hdr);
     }
 
+    //format->encoding = MMAL_ENCODING_I420;
     format->encoding = MMAL_ENCODING_OPAQUE;
-    format->es->video.width = VCOS_ALIGN_UP(state->width, 32);
-    format->es->video.height = VCOS_ALIGN_UP(state->height, 16);
+    format->encoding_variant = MMAL_ENCODING_I420;
+    format->es->video.width = VCOS_ALIGN_UP(width, 32);
+    format->es->video.height = VCOS_ALIGN_UP(height, 16);
     format->es->video.crop.x = 0;
     format->es->video.crop.y = 0;
-    format->es->video.crop.width = state->width;
-    format->es->video.crop.height = state->height;
+    format->es->video.crop.width = width;
+    format->es->video.crop.height = height;
     format->es->video.frame_rate.num = state->framerate;
     format->es->video.frame_rate.den = VIDEO_FRAME_RATE_DEN;
 
@@ -495,6 +499,12 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
     if (video_port->buffer_num < VIDEO_OUTPUT_BUFFERS_NUM)
         video_port->buffer_num = VIDEO_OUTPUT_BUFFERS_NUM;
 
+    //status = mmal_port_parameter_set_boolean(video_port, MMAL_PARAMETER_ZERO_COPY, MMAL_TRUE);
+    //if (status != MMAL_SUCCESS)
+    //{
+    //    vcos_log_error("Failed to select zero copy");
+    //    goto error;
+    //}
 
     // Set the encode format on the still port
 
@@ -503,12 +513,12 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
     format->encoding = MMAL_ENCODING_OPAQUE;
     format->encoding_variant = MMAL_ENCODING_I420;
 
-    format->es->video.width = VCOS_ALIGN_UP(state->width, 32);
-    format->es->video.height = VCOS_ALIGN_UP(state->height, 16);
+    format->es->video.width = VCOS_ALIGN_UP(width, 32);
+    format->es->video.height = VCOS_ALIGN_UP(height, 16);
     format->es->video.crop.x = 0;
     format->es->video.crop.y = 0;
-    format->es->video.crop.width = state->width;
-    format->es->video.crop.height = state->height;
+    format->es->video.crop.width = width;
+    format->es->video.crop.height = height;
     format->es->video.frame_rate.num = 0;
     format->es->video.frame_rate.den = 1;
 
@@ -532,8 +542,18 @@ MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state) {
         goto error;
     }
 
+    state->camera_parameters.rotation = 180;
     raspicamcontrol_set_all_parameters(camera, &state->camera_parameters);
 
+    /* Create pool of buffer headers for the output port to consume */
+    pool = mmal_port_pool_create(video_port, video_port->buffer_num, video_port->buffer_size);
+
+    if (!pool)
+    {
+        vcos_log_error("Failed to create buffer header pool for camera video port %s", still_port->name);
+    }
+
+    state->camera_pool = pool;
     state->camera_component = camera;
 
     update_annotation_data(state);
@@ -563,6 +583,114 @@ void destroy_camera_component(RASPIVID_STATE *state)
     {
         mmal_component_destroy(state->camera_component);
         state->camera_component = NULL;
+    }
+}
+
+/**
+ * Create the resizer component, set up its ports
+ *
+ * @param state Pointer to state control struct
+ *
+ * @return MMAL_SUCCESS if all OK, something else otherwise
+ *
+ */
+MMAL_STATUS_T create_resizer_component(RASPIVID_STATE *state)
+{
+	MMAL_COMPONENT_T *resizer = 0;
+	MMAL_ES_FORMAT_T *format;
+	MMAL_PORT_T *input_port = NULL, *output_port = NULL, *video_output_port = NULL;
+	MMAL_STATUS_T status;
+    MMAL_POOL_T *pool;
+
+	//check if camera component exists
+    if (!state->camera_component) {
+		printf("Need camera component for resizer component\n");
+		goto error;
+    }
+
+	//create the resizer component
+	status = mmal_component_create("vc.ril.resize", &resizer);
+	if (status != MMAL_SUCCESS)
+	{
+		printf("Failed to create resizer component\n");
+		goto error;
+	}
+	//check we have output ports
+	if (resizer->output_num != 1 || resizer->input_num != 1)
+	{
+		printf("Resizer doesn't have correct ports");
+		goto error;
+	}
+	//get the ports
+	input_port = resizer->input[0];
+	output_port = resizer->output[0];
+
+    video_output_port = state->camera_component->output[MMAL_CAMERA_VIDEO_PORT];
+	mmal_format_copy(input_port->format,video_output_port->format);
+	input_port->buffer_num = 3;
+	status = mmal_port_format_commit(input_port);
+	if (status != MMAL_SUCCESS)
+	{
+		printf("Couldn't set resizer input port format : error %d", status);
+		goto error;
+	}
+	mmal_format_copy(output_port->format,input_port->format);
+
+    output_port->format->encoding = MMAL_ENCODING_I420;
+	output_port->format->es->video.width = state->width;
+	output_port->format->es->video.height = state->height;
+	output_port->format->es->video.crop.x = 0;
+	output_port->format->es->video.crop.y = 0;
+	output_port->format->es->video.crop.width = state->width;
+	output_port->format->es->video.crop.height = state->height;
+
+	status = mmal_port_format_commit(output_port);
+	if (status != MMAL_SUCCESS)
+	{
+		printf("Couldn't set resizer output port format : error %d", status);
+		goto error;
+	}
+
+    //  Enable component
+    status = mmal_component_enable(resizer);
+    if (status != MMAL_SUCCESS) {
+        vcos_log_error("Unable to enable resizer component");
+        goto error;
+    }
+
+    /* Create pool of buffer headers for the output port to consume */
+    pool = mmal_port_pool_create(output_port, output_port->buffer_num, output_port->buffer_size);
+    if (!pool) {
+        vcos_log_error("Failed to create buffer header pool for resizer output port %s", output_port->name);
+    }
+
+    state->resizer_pool = pool;
+    state->resizer_component = resizer;
+
+    if (state->verbose)
+        DLOG("Resizer component done");
+
+    return status;
+
+error:
+	if(resizer)
+		mmal_component_destroy(resizer);
+
+	return status;
+}
+
+/**
+ * Destroy the camera component
+ *
+ * @param state Pointer to state control struct
+ *
+ */
+void destroy_resizer_component(RASPIVID_STATE *state)
+{
+    if (state->resizer_component)
+    {
+        mmal_component_destroy(state->resizer_component);
+        state->resizer_component = NULL;
     }
 }
 

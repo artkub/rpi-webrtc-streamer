@@ -27,71 +27,84 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __MMAL_WRAPPER_H__
-#define __MMAL_WRAPPER_H__
-
-#include <mutex>
-#include <condition_variable>
+#ifndef __RPI_VIDEO_CAPTURER_H__
+#define __RPI_VIDEO_CAPTURER_H__
 
 #include "webrtc/base/criticalsection.h"
-#include "webrtc/api/video/video_frame.h"
-#include "mmal_encoder.h"
+#include "webrtc/media/base/videocapturer.h"
+
+extern "C" {
+    #include "mmal_encoder.h"
+}
 
 namespace webrtc {
 
-class MMALEncoderWrapper {
+#define RASPI_CAM_MIN_WIDTH 320
+#define RASPI_CAM_MAX_WIDTH 1920
+//#define RASPI_CAM_MAX_WIDTH 1280
+
+class RPiVideoCapturer :
+    //public FrameQueue,
+    public cricket::VideoCapturer
+{
 
 public:
 
-    MMALEncoderWrapper();
-    ~MMALEncoderWrapper();
+    RPiVideoCapturer();
+    ~RPiVideoCapturer();
+
+    // public cricket::VideoCapturer overrides
+    cricket::CaptureState Start(const cricket::VideoFormat& format) override;
+    void Stop() override;
+    bool IsScreencast() const override { return false; };
+    bool IsRunning() override { return this->capture_state() == cricket::CS_RUNNING; }
+
+    void Init();
 
     int getWidth(void);
     int getHeight(void);
     bool SetFrame(int width, int height);
-    bool SetRate(int framerate, int bitrate);
-    bool InitEncoder(int width, int height, int framerate, int bitrate, std::function<void(MMAL_BUFFER_HEADER_T *frame)> frame_callback);
-    //bool ReinitEncoder(int width, int height, int framerate, int bitrate);
-    bool UninitEncoder(void);
-    bool Encode(const VideoFrame& frame);
-    bool ForceKeyFrame(void);
-    bool IsKeyFrame(void);
+    bool SetRate(int framerate/*, int bitrate*/);
+    bool InitCamera(int width, int height, int framerate);
+    //bool ReinitCamera(int width, int height, int framerate);
+    bool UninitCamera(void);
+    //bool ForceKeyFrame(void);
+    //bool IsKeyFrame(void);
     bool StartCapture(void);
     bool StopCapture(void);
-
-    void ReturnToPool( MMAL_BUFFER_HEADER_T *buffer );
+    void ProcessBuffer(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
 
     // Callback Functions
     void OnBufferCallback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
     static void BufferCallback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
 
-    static void InputCallback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
+    void ReleaseBuffer(MMAL_BUFFER_HEADER_T *buffer);
 
-    void StitchFrame( MMAL_BUFFER_HEADER_T *buffer );
-    void OnFrame( MMAL_BUFFER_HEADER_T *frame );
+protected:
+    // protected cricket::VideoCapturer overrides
+    bool GetPreferredFourccs(std::vector<unsigned int>* fourccs) override;
+    void OnSinkWantsChanged(const rtc::VideoSinkWants& wants) override;
+
 private:
-    //MMAL_PORT_T *camera_preview_port_;
-    //MMAL_PORT_T *camera_video_port_;
-    //MMAL_PORT_T *camera_still_port_;
+    MMAL_PORT_T *camera_preview_port_;
+    MMAL_PORT_T *camera_video_port_;
+    MMAL_PORT_T *resizer_input_port_;
+    MMAL_PORT_T *resizer_output_port_;
+    MMAL_PORT_T *camera_still_port_;
     //MMAL_PORT_T *preview_input_port_;
-    MMAL_PORT_T *encoder_input_port_;
-    MMAL_PORT_T *encoder_output_port_;
+    //MMAL_PORT_T *encoder_input_port_;
+    //MMAL_PORT_T *encoder_output_port_;
+
     RASPIVID_STATE state_;
 
-    MMAL_POOL_T *frame_pool_;
-    MMAL_BUFFER_HEADER_T *curr_frame_;
-    int curr_frame_len_;
-
-    std::function<void(MMAL_BUFFER_HEADER_T *frame)> frame_callback_;
-
-    //MMAL_POOL_T *input_pool_;
-
     rtc::CriticalSection crit_sect_;
+
+    bool Resize(int width, int height);
 };
 
 // singleton wrappper
-MMALEncoderWrapper* getMMALEncoderWrapper(void);
+RPiVideoCapturer* getRPiVideoCapturer(void);
 
 }	// namespace webrtc
 
-#endif // __MMAL_WRAPPER_H__
+#endif // __RPI_VIDEO_CAPTURER_H__

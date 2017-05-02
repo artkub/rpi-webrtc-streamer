@@ -189,7 +189,7 @@ const char kJsonSendMsg[] = "msg";
 
 
 bool AppChannel::OnMessage(int sockid, const std::string& message) {
-    LOG(INFO) << __FUNCTION__ << "(" << sockid << ")";
+    //LOG(INFO) << __FUNCTION__ << "(" << sockid << ")";
 
     Json::Reader json_reader;
     Json::Value json_value;
@@ -206,15 +206,15 @@ bool AppChannel::OnMessage(int sockid, const std::string& message) {
 
     if ( parsing_successful && !cmd.empty() ) {
         // parsing success and found the cmd keyword...
-        LOG(INFO) << "JSON Parsing Success: " << message;
+        //LOG(INFO) << "JSON Parsing Success: " << message;
     }
     else {
         static const int kMaxChunkedFrames=5;
 
         // json_value.clear();
         chunked_frames_.append(message);
-        LOG(INFO) << "Chunked Frame (" << num_chunked_frames_ << "), Message : " 
-            << chunked_frames_;
+        //LOG(INFO) << "Chunked Frame (" << num_chunked_frames_ << "), Message : " 
+        //    << chunked_frames_;
         if (!json_reader.parse(chunked_frames_, json_value)) {
             // parsing failed
             if( num_chunked_frames_++ > kMaxChunkedFrames )  {
@@ -231,7 +231,7 @@ bool AppChannel::OnMessage(int sockid, const std::string& message) {
             return true;
         }
         // parsing success and cmd keyword found.
-        LOG(INFO) << "Chunked frames successful: " << chunked_frames_;
+        //LOG(INFO) << "Chunked frames successful: " << chunked_frames_;
         num_chunked_frames_ = 0;
         chunked_frames_.clear();
         // finally successful parsing

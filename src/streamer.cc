@@ -35,8 +35,9 @@
 #include "clientconstraints.h"
 
 #include "webrtc/api/test/fakeconstraints.h"
-#include "webrtc/media/base/fakevideocapturer.h"
+//#include "webrtc/media/base/fakevideocapturer.h"
 #include "raspi_encoder.h"
+#include "rpi_video_capturer.h"
 
 #include "streamer.h"
 #include "streamer_observer.h"
@@ -129,10 +130,12 @@ bool Streamer::InitializePeerConnection() {
     cricket::WebRtcVideoEncoderFactory* encoder_factory = nullptr;
     encoder_factory = new webrtc::MMALVideoEncoderFactory();
 
+    //peer_connection_factory_ = webrtc::CreatePeerConnectionFactory()
     peer_connection_factory_  = webrtc::CreatePeerConnectionFactory(
-            network_thread_.get(), worker_thread_.get(), 
-            signaling_thread_.get(), nullptr, 
-            encoder_factory, nullptr );
+            network_thread_.get(), worker_thread_.get(),
+            signaling_thread_.get(), nullptr,
+            encoder_factory, nullptr);
+
     if (!peer_connection_factory_.get()) {
         LOG(LS_ERROR) << __FUNCTION__ << "Failed to initialize PeerConnectionFactory";
         DeletePeerConnection();
@@ -307,7 +310,7 @@ void Streamer::OnMessageFromPeer(int peer_id, const std::string& message) {
             DummySetSessionDescriptionObserver::Create(), session_description);
 
         webrtc::ClientConstraints sdpConstraints;
-        sdpConstraints.SetMandatoryReceiveAudio(true);
+        sdpConstraints.SetMandatoryReceiveAudio(false);
         sdpConstraints.SetMandatoryReceiveVideo(false);
         // TODO(kclyu) invalid sdp negotiation makes session_description 
         // null, need to figure it out how to fix it.
@@ -352,35 +355,9 @@ void Streamer::OnMessageSent(int err) {
 }
 
 cricket::VideoCapturer * Streamer::OpenVideoCaptureDevice() {
-    webrtc::Trace::CreateTrace();
-
-    std::vector<std::string> device_names;
-    {
-        std::unique_ptr<webrtc::VideoCaptureModule::DeviceInfo> info(
-            webrtc::VideoCaptureFactory::CreateDeviceInfo());
-        if (!info) {
-            return nullptr;
-        }
-        int num_devices = info->NumberOfDevices();
-        for (int i = 0; i < num_devices; ++i) {
-            const uint32_t kSize = 256;
-            char name[kSize] = {0};
-            char id[kSize] = {0};
-            if (info->GetDeviceName(i, name, kSize, id, kSize) != -1) {
-                device_names.push_back(name);
-            }
-        }
-    }
-
-    cricket::WebRtcVideoDeviceCapturerFactory factory;
-    cricket::VideoCapturer *capturer;
-    for (const auto& name : device_names) {
-        capturer = factory.Create(cricket::Device(name, 0));
-        if (capturer) {
-            break;
-        }
-    }
-    return capturer;
+    webrtc::RPiVideoCapturer* capturer = new webrtc::RPiVideoCapturer();
+    capturer->Init();
+    return (cricket::VideoCapturer*)capturer;
 }
 
 void Streamer::AddStreams() {
@@ -412,13 +389,14 @@ void Streamer::AddStreams() {
     rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track(
         peer_connection_factory_->CreateVideoTrack(
             kVideoLabel,
-            peer_connection_factory_->CreateVideoSource(new cricket::FakeVideoCapturer(false),
+            peer_connection_factory_->CreateVideoSource(OpenVideoCaptureDevice(),
                     &videoConstraints)));
+                    //NULL)));
 
     rtc::scoped_refptr<webrtc::MediaStreamInterface> stream =
         peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);
 
-    stream->AddTrack(audio_track);
+    //stream->AddTrack(audio_track);
 
     stream->AddTrack(video_track);
     if (!peer_connection_->AddStream(stream)) {
