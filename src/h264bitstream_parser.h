@@ -57,8 +57,8 @@ private:
     h264_stream_t* parser_internal_;
     bool verbose_;
     bool inited_;
-    uint32_t pic_init_qp_minus26_;
-    uint32_t slice_qp_delta_;
+    int32_t pic_init_qp_minus26_;
+    int32_t slice_qp_delta_;
     bool pps_parsed_;
     bool slice_parsed_;
 

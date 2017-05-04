@@ -226,13 +226,13 @@ void MMALEncoderWrapper::BufferCallback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T 
 bool MMALEncoderWrapper::UninitEncoder(void) {
     rtc::CritScope cs(&crit_sect_);
 
-    LOG(INFO) << "unitialize the MMAL encode wrapper." << this;
-
-    mmal_pool_destroy(frame_pool_);
+    LOG(INFO) << "unitialize the MMAL encode wrapper.";
 
     // Disable all our ports that are not handled by connections
     check_disable_port(encoder_input_port_);
     check_disable_port(encoder_output_port_);
+
+    mmal_pool_destroy(frame_pool_);
 
     /* Disable components */
     if (state_.encoder_component)

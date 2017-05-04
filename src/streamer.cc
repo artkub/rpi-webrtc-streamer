@@ -29,6 +29,7 @@
 #include "webrtc/media/engine/webrtcvideoencoderfactory.h"
 #include "webrtc/media/engine/webrtcvideocapturerfactory.h"
 #include "webrtc/modules/video_capture/video_capture_factory.h"
+#include "webrtc/modules/video_coding/codecs/h264/include/h264.h"
 
 #include "webrtc/system_wrappers/include/trace.h"
 
@@ -42,6 +43,7 @@
 #include "streamer.h"
 #include "streamer_observer.h"
 #include "streamer_config.h"
+
 
 
 using webrtc::PeerConnectionInterface;
@@ -109,6 +111,9 @@ void Streamer::Close() {
 }
 
 bool Streamer::InitializePeerConnection() {
+    // Disable internal H264 codec
+    webrtc::DisableRtcUseH264();
+
     RTC_DCHECK(peer_connection_factory_.get() == nullptr);
     RTC_DCHECK(peer_connection_.get() == nullptr);
 
@@ -318,6 +323,7 @@ void Streamer::OnMessageFromPeer(int peer_id, const std::string& message) {
                 webrtc::SessionDescriptionInterface::kOffer) {
             peer_connection_->CreateAnswer(this, &sdpConstraints);
         }
+
         return;
     } else {
         std::string sdp_mid;
@@ -374,24 +380,11 @@ void Streamer::AddStreams() {
         peer_connection_factory_->CreateAudioTrack(
             kAudioLabel, peer_connection_factory_->CreateAudioSource(&audioConstraints)));
 
-    webrtc::ClientConstraints videoConstraints;
-    videoConstraints.SetMandatoryMaxWidth(1920);
-    videoConstraints.SetMandatoryMaxHeight(1080);
-    //videoConstraints.SetMandatoryMaxWidth(1280);
-    //videoConstraints.SetMandatoryMaxHeight(1024);
-    //videoConstraints.SetMandatoryMaxWidth(640);
-    //videoConstraints.SetMandatoryMaxHeight(480);
-    videoConstraints.SetMandatoryMinWidth(320);
-    videoConstraints.SetMandatoryMinHeight(240);
-    videoConstraints.SetMandatoryMaxFrameRate(30);
-    videoConstraints.SetMandatoryMinFrameRate(15);
-
     rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track(
         peer_connection_factory_->CreateVideoTrack(
             kVideoLabel,
             peer_connection_factory_->CreateVideoSource(OpenVideoCaptureDevice(),
-                    &videoConstraints)));
-                    //NULL)));
+                    nullptr)));
 
     rtc::scoped_refptr<webrtc::MediaStreamInterface> stream =
         peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);

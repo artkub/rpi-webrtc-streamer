@@ -117,6 +117,7 @@ bool H264StreamParser::GetLastSliceQp( int *qp ) {
     if( !slice_parsed_ ) return false;
 
     *qp = 26 + pic_init_qp_minus26_ + slice_qp_delta_;
+    //LOG(INFO) <<  "------------ *qp: " << *qp;
 
     return true;
 }

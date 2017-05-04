@@ -55,13 +55,13 @@ struct resolution {
 static const resolution resolutions[] = {
     { 640, 360, 640*360 },
     //{ 720, 405, 720*405 },
-    //{ 854, 480, 854*480 },
+    { 854, 480, 854*480 },
     { 960, 540, 960*540 },
     //{ 1024, 576, 1024*576 },
     { 1280, 720, 1280*720 },
     //{ 1366, 768, 1366*768 },
     //{ 1600, 900, 1600*900 },
-    //{ 1920, 1080, 1920*1080 }
+    { 1920, 1080, 1920*1080 }
 };
 
 RPiVideoCapturer::RPiVideoCapturer()
@@ -116,7 +116,6 @@ void RPiVideoCapturer::Init()
 
 cricket::CaptureState RPiVideoCapturer::Start(const cricket::VideoFormat& format)
 {
-    LOG(INFO) << "-------------- RPiVideoCapturer::Start " << std::to_string(format.fourcc);
     const int fps = cricket::VideoFormat::IntervalToFps(format.interval);
     SetCaptureFormat(&format);
     SetCaptureState(cricket::CS_RUNNING);
@@ -144,63 +143,63 @@ bool RPiVideoCapturer::GetPreferredFourccs(std::vector<unsigned int>* fourccs)
     return true;
 }
 
-void RPiVideoCapturer::OnSinkWantsChanged(const rtc::VideoSinkWants& wants)
-{
-    int pixel_count = 0;
-
-    if (wants.max_pixel_count_step_up) {
-        pixel_count = wants.max_pixel_count_step_up.value_or(0) * 4 / 3;
-    } else if (wants.max_pixel_count) {
-        pixel_count = wants.max_pixel_count.value_or(0);
-    }
-
-    if (pixel_count > 0) {
-        int width, height;
-
-        width = std::sqrt(pixel_count * 16 / 9);
-        if (width < RASPI_CAM_MIN_WIDTH) width = RASPI_CAM_MIN_WIDTH;
-        if (width > RASPI_CAM_MAX_WIDTH) width = RASPI_CAM_MAX_WIDTH;
-        height = width * 9 / 16;
-
-        if (width == state_.width && height == state_.height) {
-            LOG(INFO) << "Keeping current resolution";
-        } else {
-            Resize(width, height);
-        }
-    }
-}
-
 //void RPiVideoCapturer::OnSinkWantsChanged(const rtc::VideoSinkWants& wants)
 //{
+//    int pixel_count = 0;
+//
 //    if (wants.max_pixel_count_step_up) {
-//        int curr_pixel_count = wants.max_pixel_count_step_up.value_or(0);
-//        for (unsigned int i = 0; i < sizeof(resolutions)/sizeof(resolutions[0]); i++ ) {
-//            resolution res = resolutions[i];
-//
-//            // Pick lowest resolution with a higher pixel count
-//            if (res.pixelCount > curr_pixel_count) {
-//                Resize(res.width, res.height);
-//                return;
-//            }
-//        }
-//
-//        LOG(INFO) << "Already at highest resolution";
+//        pixel_count = wants.max_pixel_count_step_up.value_or(0) * 4 / 3;
 //    } else if (wants.max_pixel_count) {
-//        int max_pixel_count = wants.max_pixel_count.value_or(0);
+//        pixel_count = wants.max_pixel_count.value_or(0);
+//    }
+//
+//    if (pixel_count > 0) {
 //        int width, height;
 //
-//        width = std::sqrt(max_pixel_count * 16 / 9);
-//        if (width < 320) width = 320;
-//        if (width > 1280) width = 1280;
+//        width = std::sqrt(pixel_count * 16 / 9);
+//        if (width < RASPI_CAM_MIN_WIDTH) width = RASPI_CAM_MIN_WIDTH;
+//        if (width > RASPI_CAM_MAX_WIDTH) width = RASPI_CAM_MAX_WIDTH;
 //        height = width * 9 / 16;
 //
 //        if (width == state_.width && height == state_.height) {
-//            LOG(INFO) << "Already at lowest resolution";
+//            LOG(INFO) << "Keeping current resolution";
 //        } else {
 //            Resize(width, height);
 //        }
 //    }
 //}
+
+void RPiVideoCapturer::OnSinkWantsChanged(const rtc::VideoSinkWants& wants)
+{
+    if (wants.max_pixel_count_step_up) {
+        int curr_pixel_count = wants.max_pixel_count_step_up.value_or(0);
+        for (unsigned int i = 0; i < sizeof(resolutions)/sizeof(resolutions[0]); i++ ) {
+            resolution res = resolutions[i];
+
+            // Pick lowest resolution with a higher pixel count
+            if (res.pixelCount > curr_pixel_count) {
+                Resize(res.width, res.height);
+                return;
+            }
+        }
+
+        LOG(INFO) << "Already at highest resolution";
+    } else if (wants.max_pixel_count) {
+        int max_pixel_count = wants.max_pixel_count.value_or(0);
+        int i = sizeof(resolutions)/sizeof(resolutions[0]);
+        while (i--) {
+            resolution res = resolutions[i];
+
+            // Pick highest resolution with a lower or equal pixel count
+            if (res.pixelCount <= max_pixel_count) {
+                Resize(res.width, res.height);
+                return;
+            }
+        }
+
+        LOG(INFO) << "Already at lowest resolution";
+    }
+}
 
 bool RPiVideoCapturer::Resize(int width, int height)
 {
@@ -274,8 +273,11 @@ bool RPiVideoCapturer::InitCamera(int width, int height, int framerate)
               << width << "x" << height << "@" << framerate;
     rtc::CritScope cs(&crit_sect_);
 
-    state_.width =  width;
-    state_.height =  height;
+    //state_.width =  width;
+    //state_.height =  height;
+    state_.width =  1920;
+    state_.height =  1080;
+
     state_.framerate =  framerate;
     //state_.bitrate =  bitrate * 1000;
 
